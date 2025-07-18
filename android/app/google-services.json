@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "1072231117405",
+    "project_id": "translator-app-84872",
+    "storage_bucket": "translator-app-84872.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1072231117405:android:0f6d0c2cf5ae392bf213b4",
+        "android_client_info": {
+          "package_name": "com.example.translator_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1072231117405-nlpeo761msh0fd7dk1l0cqv5b90qlmgn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnGaRMV0fPq6pjgg6PVBAzd-p3fhNPnyI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1072231117405-nlpeo761msh0fd7dk1l0cqv5b90qlmgn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1072231117405-ed27fmsfgcs6v35a7mvueefi8bha6vdg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.translatorApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
