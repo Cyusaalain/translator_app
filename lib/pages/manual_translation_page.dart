@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:translator/translator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:translator_app/pages/TranslationHistoryPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class ManualTranslationPage extends StatefulWidget {
   const ManualTranslationPage({super.key});
@@ -10,6 +13,7 @@ class ManualTranslationPage extends StatefulWidget {
 }
 
 class _ManualTranslationPageState extends State<ManualTranslationPage> {
+  List<Map<String, String>> _history = [];
   final translator = GoogleTranslator();
   final TextEditingController _inputController = TextEditingController();
   final FlutterTts _flutterTts = FlutterTts();
@@ -31,8 +35,22 @@ class _ManualTranslationPageState extends State<ManualTranslationPage> {
 
   @override
   void initState() {
+    _loadHistory();
     super.initState();
     _initTts();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('translation_history');
+    if (data != null) {
+      final List<dynamic> decoded = jsonDecode(data);
+      setState(() {
+        _history = decoded.map<Map<String, String>>((item) {
+          return Map<String, String>.from(item);
+        }).toList();
+      });
+    }
   }
 
   Future<void> _initTts() async {
@@ -48,12 +66,18 @@ class _ManualTranslationPageState extends State<ManualTranslationPage> {
     });
   }
 
+  Future<void> _saveHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = jsonEncode(_history);
+    await prefs.setString('translation_history', encoded);
+  }
+
   Future<void> _speak() async {
     if (_translatedText.isEmpty) return;
 
     await _flutterTts.setLanguage(_outputLanguage);
     await _flutterTts.setPitch(1.0);
-    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setSpeechRate(0.8);
     await _flutterTts.speak(_translatedText);
   }
 
@@ -75,7 +99,14 @@ class _ManualTranslationPageState extends State<ManualTranslationPage> {
       setState(() {
         _translatedText = translation.text;
         _isTranslating = false;
+        _history.add({
+          'input': _inputController.text,
+          'translated': translation.text,
+          'fromLang': _inputLanguage,
+          'toLang': _outputLanguage,
+        });
       });
+      await _saveHistory();
     } catch (e) {
       setState(() {
         _translatedText = 'Translation failed';
@@ -131,9 +162,38 @@ class _ManualTranslationPageState extends State<ManualTranslationPage> {
               const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  "history",
+                  "Translation History",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
+              ),
+              Expanded(
+                child: _history.isEmpty
+                    ? const Center(child: Text("No history found."))
+                    : ListView.builder(
+                        itemCount: _history.length,
+                        itemBuilder: (context, index) {
+                          final entry = _history[index];
+                          final preview =
+                              entry['translated']!
+                                  .split(' ')
+                                  .take(2)
+                                  .join(' ') +
+                              '...';
+
+                          return ListTile(
+                            title: Text(preview),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      TranslationDetailPage(entry: entry),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
               ),
             ],
           ),

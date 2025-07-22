@@ -1,5 +1,3 @@
-// Final Updated LiveTranslationPage.dart with microphone on right, copy feature, and sliding menu with logout and manual translation link
-
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
