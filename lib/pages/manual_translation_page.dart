@@ -104,6 +104,7 @@ class _ManualTranslationPageState extends State<ManualTranslationPage> {
           'translated': translation.text,
           'fromLang': _inputLanguage,
           'toLang': _outputLanguage,
+          'timestamp': DateTime.now().toIso8601String(),
         });
       });
       await _saveHistory();
@@ -173,21 +174,33 @@ class _ManualTranslationPageState extends State<ManualTranslationPage> {
                         itemCount: _history.length,
                         itemBuilder: (context, index) {
                           final entry = _history[index];
+                          final translated = entry['translated'] ?? '';
+                          final timestamp = entry['timestamp'];
+                          final date = timestamp != null
+                              ? DateTime.tryParse(timestamp)
+                              : null;
+                          final formattedDate = date != null
+                              ? "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}"
+                              : "Unknown time";
                           final preview =
-                              entry['translated']!
-                                  .split(' ')
-                                  .take(2)
-                                  .join(' ') +
-                              '...';
-
+                              "${translated.split(' ').take(2).join(' ')}...";
                           return ListTile(
                             title: Text(preview),
+                            subtitle: Text(formattedDate),
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      TranslationDetailPage(entry: entry),
+                                  builder: (_) => TranslationDetailPage(
+                                    entry: entry,
+                                    onDelete: () {
+                                      setState(() {
+                                        _history.removeAt(index);
+                                      });
+                                      _saveHistory();
+                                      Navigator.pop(context);
+                                    },
+                                  ),
                                 ),
                               );
                             },
