@@ -7,6 +7,7 @@ import 'pages/homepage.dart';
 import 'pages/auth_screen.dart';
 import 'firebase_options.dart';
 import 'pages/forgot_password.dart';
+import 'pages/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,16 +20,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Provider<AuthService>(
-      create: (_) => AuthService(),
-      child: MaterialApp(
-        title: 'Live translation',
-        routes: {
-          '/': (context) => const AuthWrapper(),
-          '/home': (context) =>
-              const LiveTranslationPage(), // Updated reference
-          '/forgot-password': (context) => const ForgotPasswordPage(),
-        },
+    return MultiProvider(
+      providers: [
+        Provider<AuthService>(create: (_) => AuthService()),
+        ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, theme, _) => MaterialApp(
+          title: 'Live Translation',
+          debugShowCheckedModeBanner: false,
+          theme: theme.themeData,
+          routes: {
+            '/': (context) => const AuthWrapper(),
+            '/home': (context) => const LiveTranslationPage(),
+            '/forgot-password': (context) => const ForgotPasswordPage(),
+          },
+        ),
       ),
     );
   }
@@ -46,8 +53,8 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.active) {
           return snapshot.hasData
-              ? const LiveTranslationPage() // Updated reference
-              : const AuthScreen(); // Or your LoginPage()
+              ? const LiveTranslationPage()
+              : const AuthScreen();
         }
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },

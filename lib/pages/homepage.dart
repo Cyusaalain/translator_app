@@ -1,10 +1,16 @@
+// Final Updated LiveTranslationPage.dart with microphone on right, copy feature, and sliding menu with logout and manual translation link
+
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:translator/translator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'manual_translation_page.dart';
+import 'package:flutter/services.dart';
+import 'theme_provider.dart';
 
 class LiveTranslationPage extends StatefulWidget {
   const LiveTranslationPage({super.key});
@@ -21,12 +27,13 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
   String _translatedText = '';
   final translator = GoogleTranslator();
   final FlutterTts _flutterTts = FlutterTts();
-  final Random _random = Random();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  User? _currentUser;
 
-  // Animation variables
   late AnimationController _animationController;
   List<double> _animationValues = [];
   final int _waveformBars = 15;
+  final Random _random = Random();
 
   final Map<String, String> _languages = {
     '🇬🇧 English': 'en',
@@ -47,6 +54,7 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
     _initAnimation();
     _requestPermission();
     _initTts();
+    _currentUser = _auth.currentUser;
   }
 
   void _initAnimation() {
@@ -78,6 +86,11 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
     }
   }
 
+  Future<void> _logout() async {
+    await _auth.signOut();
+    Navigator.pushReplacementNamed(context, '/');
+  }
+
   void _listen() async {
     if (!_isListening) {
       bool available = await _speech.initialize();
@@ -100,9 +113,7 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
 
   void _translate(String text) async {
     if (text.isEmpty) return;
-
     setState(() => _translatedText = "Translating...");
-
     try {
       final translation = await translator.translate(
         text,
@@ -110,7 +121,7 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
         to: _outputLanguage,
       );
       setState(() => _translatedText = translation.text);
-    } catch (e) {
+    } catch (_) {
       setState(() => _translatedText = "Translation failed");
     }
   }
@@ -121,14 +132,6 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
     await _flutterTts.setPitch(1.0);
     await _flutterTts.setSpeechRate(0.4);
     await _flutterTts.speak(_translatedText);
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _speech.stop();
-    _flutterTts.stop();
-    super.dispose();
   }
 
   Widget _buildLanguageDropdown(
@@ -160,24 +163,117 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
     );
   }
 
+  void _showOptionsSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        height: MediaQuery.of(context).size.height * 0.5,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.translate),
+              title: const Text("Manual Translation"),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ManualTranslationPage(),
+                ),
+              ),
+            ),
+            const Spacer(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text("Logout", style: TextStyle(color: Colors.red)),
+              onTap: _logout,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _speech.stop();
+    _flutterTts.stop();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      endDrawer: Drawer(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  "Settings",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+              RadioListTile<AppTheme>(
+                title: const Text("Light Theme"),
+                value: AppTheme.light,
+                groupValue: context.watch<ThemeProvider>().currentTheme,
+                onChanged: (theme) =>
+                    context.read<ThemeProvider>().setTheme(theme!),
+              ),
+              RadioListTile<AppTheme>(
+                title: const Text("Dark Theme"),
+                value: AppTheme.dark,
+                groupValue: context.watch<ThemeProvider>().currentTheme,
+                onChanged: (theme) =>
+                    context.read<ThemeProvider>().setTheme(theme!),
+              ),
+              RadioListTile<AppTheme>(
+                title: const Text("Blue Theme"),
+                value: AppTheme.blue,
+                groupValue: context.watch<ThemeProvider>().currentTheme,
+                onChanged: (theme) =>
+                    context.read<ThemeProvider>().setTheme(theme!),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.translate),
+                title: const Text("Manual Translation"),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManualTranslationPage(),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text(
+                  "Logout",
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: _logout,
+              ),
+            ],
+          ),
+        ),
+      ),
       appBar: AppBar(
         title: const Text('Live Translation'),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.text_fields),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ManualTranslationPage(),
-                ),
-              );
-            },
-            tooltip: 'Manual Translation',
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.more_vert),
+              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            ),
           ),
         ],
       ),
@@ -185,7 +281,6 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Language Selection
             Row(
               children: [
                 Expanded(
@@ -205,94 +300,93 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
                 ),
               ],
             ),
-
             const SizedBox(height: 30),
-
-            // Speech Input Card
             Card(
               elevation: 3,
               child: Padding(
                 padding: const EdgeInsets.all(15.0),
-                child: Column(
+                child: Row(
                   children: [
-                    const Text(
-                      'SPEECH INPUT',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-
-                    if (_isListening)
-                      SizedBox(
-                        height: 40,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: List.generate(
-                            _waveformBars,
-                            (index) => AnimatedContainer(
-                              duration: const Duration(milliseconds: 100),
-                              width: 4,
-                              height: _animationValues.isNotEmpty
-                                  ? _animationValues[index] * 30
-                                  : 10,
-                              margin: const EdgeInsets.symmetric(horizontal: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.blueAccent,
-                                borderRadius: BorderRadius.circular(2),
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF42A5F5),
-                                    Color(0xFF1976D2),
-                                  ],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
-                              ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'SPEECH INPUT',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
                             ),
                           ),
-                        ),
-                      )
-                    else
-                      Text(
-                        _spokenText.isEmpty
-                            ? 'Tap mic to start speaking'
-                            : _spokenText,
-                        style: const TextStyle(fontSize: 16),
+                          const SizedBox(height: 10),
+                          if (_isListening)
+                            SizedBox(
+                              height: 40,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: List.generate(
+                                  _waveformBars,
+                                  (index) => AnimatedContainer(
+                                    duration: const Duration(milliseconds: 100),
+                                    width: 4,
+                                    height: _animationValues.isNotEmpty
+                                        ? _animationValues[index] * 30
+                                        : 10,
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blueAccent,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            Text(
+                              _spokenText.isEmpty
+                                  ? 'Tap mic to start speaking'
+                                  : _spokenText,
+                            ),
+                        ],
                       ),
-
-                    const SizedBox(height: 20),
-                    FloatingActionButton(
-                      onPressed: _listen,
-                      backgroundColor: _isListening ? Colors.red : Colors.blue,
-                      child: Icon(
+                    ),
+                    IconButton(
+                      icon: Icon(
                         _isListening ? Icons.mic_off : Icons.mic,
                         size: 30,
+                        color: Colors.white,
+                      ),
+                      onPressed: _listen,
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(
+                          _isListening ? Colors.red : Colors.blue,
+                        ),
+                        shape: MaterialStateProperty.all(const CircleBorder()),
+                        padding: MaterialStateProperty.all(
+                          const EdgeInsets.all(12),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // Translation Output Card
             Card(
               elevation: 3,
               child: Padding(
                 padding: const EdgeInsets.all(15.0),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'TRANSLATION',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.green,
-                        letterSpacing: 1.2,
                       ),
                     ),
                     const SizedBox(height: 15),
@@ -300,18 +394,31 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
                       _translatedText.isEmpty
                           ? 'Translation will appear here'
                           : _translatedText,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
                     ),
                     if (_translatedText.isNotEmpty &&
                         _translatedText != "Translating...") ...[
                       const SizedBox(height: 20),
-                      IconButton(
-                        icon: const Icon(Icons.volume_up, size: 30),
-                        color: Colors.green,
-                        onPressed: _speak,
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.volume_up, size: 30),
+                            color: Colors.green,
+                            onPressed: _speak,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.copy, size: 28),
+                            onPressed: () {
+                              Clipboard.setData(
+                                ClipboardData(text: _translatedText),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Copied to clipboard"),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ],
