@@ -359,11 +359,11 @@ class _LiveTranslationPageState extends State<LiveTranslationPage>
                       ),
                       onPressed: _listen,
                       style: ButtonStyle(
-                        backgroundColor: MaterialStateProperty.all(
+                        backgroundColor: WidgetStateProperty.all(
                           _isListening ? Colors.red : Colors.blue,
                         ),
-                        shape: MaterialStateProperty.all(const CircleBorder()),
-                        padding: MaterialStateProperty.all(
+                        shape: WidgetStateProperty.all(const CircleBorder()),
+                        padding: WidgetStateProperty.all(
                           const EdgeInsets.all(12),
                         ),
                       ),

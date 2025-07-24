@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, theme, _) => MaterialApp(
-          title: 'Live Translation',
+          title: 'translator app',
           debugShowCheckedModeBanner: false,
           theme: theme.themeData,
           routes: {
